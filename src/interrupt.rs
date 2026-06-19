@@ -14,5 +14,6 @@ pub fn init_idt() {
 }
 
 extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
-    crate::println!("EXCEPTION: BREAKPOINT\n{:#?}", stack_frame);
+    min_os::println!("EXCEPTION: BREAKPOINT\n{:#?}", stack_frame);
+    min_os::serial_println!("EXCEPTION: BREAKPOINT\n{:#?}", stack_frame);
 }

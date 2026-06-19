@@ -1,69 +1,50 @@
 #![no_std]
 #![no_main]
 #![feature(custom_test_frameworks)]
-#![test_runner(crate::test_runner)]
-#![reexport_test_harness_main = "test_main"]
 #![feature(abi_x86_interrupt)]
-
-pub mod interrupt;
-pub mod vga_buffer;
+#![test_runner(min_os::test_runner)]
+#![reexport_test_harness_main = "test_main"]
 
 use core::panic::PanicInfo;
 
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
-}
-
-static HELLO: &[u8] = b"shoutout to sangeet";
-
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
-    println!("shoutout to sangeet{}", "!");
-
-    init();
-
-    x86_64::instructions::interrupts::int3();
+    min_os::println!("shoutout to sangeet{}", "!");
 
     #[cfg(test)]
     test_main();
 
-    println!("It did not crash!");
+    init();
+
+    // x86_64::instructions::interrupts::int3();
+    //
+    // unsafe {
+    //     *(0xdeadbeef as *mut u8) = 42;
+    // };
+
     loop {}
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u32)]
-pub enum QemuExitCode {
-    Success = 0x10,
-    Failed = 0x11,
-}
-
-pub fn exit_qemu(exit_code: QemuExitCode) {
-    use x86_64::instructions::port::Port;
-
-    unsafe {
-        let mut port = Port::new(0xf4);
-        port.write(exit_code as u32);
-    }
 }
 
 fn init() {
     interrupt::init_idt();
 }
 
-#[cfg(test)]
-pub fn test_runner(tests: &[&dyn Fn()]) {
-    println!("Running {} tests", tests.len());
-    for test in tests {
-        test();
-    }
-    exit_qemu(QemuExitCode::Success);
-}
-
 #[test_case]
 fn trivial_assertion() {
-    print!("trivial assertion... ");
+    min_os::serial_print!("trivial assertion... ");
     assert_eq!(1, 1);
-    println!("[ok]");
+    min_os::serial_println!("[ok]");
+}
+
+#[cfg(not(test))]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    min_os::println!("{}", info);
+    loop {}
+}
+
+#[cfg(test)]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    min_os::test_panic_handler(info)
 }
