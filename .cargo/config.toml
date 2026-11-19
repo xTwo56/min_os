@@ -1,6 +1,7 @@
 [unstable]
 json-target-spec = true
-build-std = ["core", "compiler_builtins"]
+# Build alloc for our custom bare-metal target so Box, Vec, and Rc are available.
+build-std = ["core", "compiler_builtins", "alloc"]
 build-std-features = ["compiler-builtins-mem"]
 
 [build]

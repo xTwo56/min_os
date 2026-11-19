@@ -5,10 +5,18 @@
 #![reexport_test_harness_main = "test_main"]
 #![feature(abi_x86_interrupt)]
 
+// no_std omits std, but we can explicitly link Rust's heap-backed alloc library.
+extern crate alloc;
+
+#[cfg(test)]
+use bootloader::{BootInfo, entry_point};
 use core::panic::PanicInfo;
 
+// Expose heap initialization and register the allocator used by alloc types.
+pub mod allocator;
 pub mod gdt;
 pub mod interrupts;
+pub mod memory;
 pub mod serial;
 pub mod vga_buffer;
 
@@ -42,10 +50,13 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
     hlt_loop();
 }
 
+#[cfg(test)]
+entry_point!(test_kernel_main);
+
 /// Entry point for `cargo test`
 #[cfg(test)]
-#[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
+fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
+    init();
     test_main();
     hlt_loop();
 }
