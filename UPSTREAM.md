@@ -1,7 +1,26 @@
 # Source reference
 
 This project follows Philipp Oppermann's [Writing an OS in Rust](https://os.phil-opp.com/)
-through [Heap Allocation](https://os.phil-opp.com/heap-allocation/).
+through [Allocator Designs](https://os.phil-opp.com/allocator-designs/).
+
+## Allocator designs (post 11)
+
+The allocator implementations were copied from the official
+[`phil-opp/blog_os` `post-11` branch](https://github.com/phil-opp/blog_os/tree/8a2d25798dfb12cbd11bc38df678beda9ad5a676),
+commit `8a2d25798dfb12cbd11bc38df678beda9ad5a676`:
+
+- `src/allocator/bump.rs` implements the article's linear bump allocator.
+- `src/allocator/linked_list.rs` implements the article's first-fit free-list
+  allocator with metadata stored in free memory.
+- `src/allocator/fixed_size_block.rs` implements the selected global allocator:
+  fixed-size free lists for common small layouts and `linked_list_allocator::Heap`
+  as the fallback for new blocks and larger layouts.
+- `src/allocator.rs` adds the `Locked` wrapper and `align_up` helper, and switches
+  the global allocator from `LockedHeap` to `FixedSizeBlockAllocator`.
+- `tests/heap_allocation.rs` adds the upstream long-lived allocation test.
+
+The algorithms match upstream. Local changes are explanatory comments, formatting,
+and the existing `min_os` crate name.
 
 ## Heap allocation (post 10)
 
@@ -44,7 +63,7 @@ commit `3d6647737de4121e26aa64e05a092ff611a990b9`:
   are included.
 
 The copied code is used under upstream's MIT license, included in `LICENSE-MIT`.
-This stops at post 10; Allocator Designs and later chapters are not included.
+This stops at post 11; Async/Await and later work are not included.
 
 Build a bootable image with `cargo bootimage`, run it with `cargo run`, and run the
 upstream unit and integration tests in QEMU with `cargo test`.

@@ -61,6 +61,19 @@ fn many_boxes() {
     }
 }
 
+#[test_case]
+fn many_boxes_long_lived() {
+    // Keep one allocation alive while repeatedly allocating and freeing others.
+    // A bump allocator cannot reset while this value exists; the fixed-size
+    // allocator succeeds because it immediately reuses each freed block.
+    let long_lived = Box::new(1);
+    for i in 0..HEAP_SIZE {
+        let x = Box::new(i);
+        assert_eq!(*x, i);
+    }
+    assert_eq!(*long_lived, 1);
+}
+
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     min_os::test_panic_handler(info)

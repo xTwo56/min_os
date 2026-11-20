@@ -3,7 +3,7 @@
 
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr::null_mut;
-use linked_list_allocator::LockedHeap;
+use fixed_size_block::FixedSizeBlockAllocator;
 use x86_64::{
     VirtAddr,
     structures::paging::{
@@ -11,17 +11,22 @@ use x86_64::{
     },
 };
 
+// Post 11 implements these three designs from scratch. The first two remain
+// useful reference implementations; the fixed-size allocator is used globally.
+pub mod bump;
+pub mod fixed_size_block;
+pub mod linked_list;
+
 // This is a virtual address, not a physical RAM address. The tutorial reserves
 // this unused range for the heap; its physical frames need not be contiguous.
 pub const HEAP_START: usize = 0x_4444_4444_0000;
 pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
 
-// Rust routes allocations and deallocations through this instance. LockedHeap
-// protects its free list with a spinlock. It starts empty, so allocations must
-// wait until init_heap finishes. Interrupt handlers must not allocate while
-// interrupted code might hold this lock, or they could deadlock.
+// Rust routes allocations and deallocations through this instance. Small
+// allocations use fixed-size free lists, while uncommon layouts fall back to a
+// linked-list heap. The Locked wrapper serializes access with a spinlock.
 #[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
+static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
 
 /// Map the heap's pages, then make that memory available to the global allocator.
 /// Call once during boot, before creating any heap-backed values.
@@ -74,4 +79,34 @@ unsafe impl GlobalAlloc for Dummy {
     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
         panic!("dealloc should be never called")
     }
+}
+
+/// Wrap an allocator in a spin mutex so it can safely serve as GlobalAlloc.
+///
+/// GlobalAlloc methods receive `&self`, but allocator bookkeeping needs mutable
+/// access. The mutex provides that interior mutability and prevents concurrent
+/// callers from changing the allocator state at the same time.
+pub struct Locked<A> {
+    inner: spin::Mutex<A>,
+}
+
+impl<A> Locked<A> {
+    pub const fn new(inner: A) -> Self {
+        Locked {
+            inner: spin::Mutex::new(inner),
+        }
+    }
+
+    pub fn lock(&self) -> spin::MutexGuard<'_, A> {
+        self.inner.lock()
+    }
+}
+
+/// Align `addr` upwards to the next multiple of `align`.
+///
+/// `align` must be a power of two, as required by Rust's Layout type. The bit
+/// mask works because powers of two have all lower address bits set in
+/// `align - 1`.
+fn align_up(addr: usize, align: usize) -> usize {
+    (addr + align - 1) & !(align - 1)
 }
