@@ -1,7 +1,19 @@
 # Source reference
 
-This project follows Philipp Oppermann's [Writing an OS in Rust](https://os.phil-opp.com/)
-through [Allocator Designs](https://os.phil-opp.com/allocator-designs/).
+This project contains a bare-metal Rust kernel with paging, heap allocation,
+custom allocators, and cooperative asynchronous tasks.
+
+## Asynchronous task execution
+
+- `src/task/mod.rs` owns pinned futures and assigns unique task identifiers.
+- `src/task/executor.rs` schedules only ready tasks through a bounded queue and
+  custom wakers, then halts the CPU while no work is ready.
+- `src/task/keyboard.rs` transfers keyboard bytes from interrupt context into an
+  asynchronous stream for decoding and printing.
+- `src/task/simple_executor.rs` retains the minimal polling executor as a compact
+  reference implementation.
+- `src/interrupts.rs` now limits the keyboard handler to reading and enqueueing a
+  scancode, while `src/main.rs` starts the executor and its tasks.
 
 ## Allocator designs (post 11)
 
@@ -63,7 +75,7 @@ commit `3d6647737de4121e26aa64e05a092ff611a990b9`:
   are included.
 
 The copied code is used under upstream's MIT license, included in `LICENSE-MIT`.
-This stops at post 11; Async/Await and later work are not included.
+The kernel now includes asynchronous task execution and keyboard input.
 
 Build a bootable image with `cargo bootimage`, run it with `cargo run`, and run the
 upstream unit and integration tests in QEMU with `cargo test`.

@@ -4,7 +4,7 @@
 #![test_runner(min_os::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-// These are the post-10 integration tests, run in their own bootable kernel.
+// These integration tests run in their own bootable kernel.
 extern crate alloc;
 
 use alloc::{boxed::Box, vec::Vec};

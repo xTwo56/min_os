@@ -1,5 +1,4 @@
-// Post 10 keeps the paging machinery from post 09 and removes its VGA mapping
-// demo. allocator::init_heap now maps unused physical frames into the heap.
+// The heap allocator maps unused physical frames through this paging machinery.
 use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
 use x86_64::{
     PhysAddr, VirtAddr,

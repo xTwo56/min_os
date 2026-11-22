@@ -11,8 +11,8 @@ use x86_64::{
     },
 };
 
-// Post 11 implements these three designs from scratch. The first two remain
-// useful reference implementations; the fixed-size allocator is used globally.
+// The first two designs remain useful reference implementations; the
+// fixed-size allocator is used globally.
 pub mod bump;
 pub mod fixed_size_block;
 pub mod linked_list;
